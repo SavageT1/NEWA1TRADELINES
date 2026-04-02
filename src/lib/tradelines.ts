@@ -15,10 +15,12 @@ export interface Tradeline {
   available: boolean;
 }
 
-function applyMarkup(tradelines: Omit<Tradeline, 'price'>[] & { vendorPrice: number }[]): Tradeline[] {
+type VendorTradeline = Omit<Tradeline, 'price'> & { vendorPrice: number };
+
+function applyMarkup(tradelines: VendorTradeline[]): Tradeline[] {
   return tradelines.map(({ vendorPrice, ...t }) => ({
     ...t,
-    price: Math.ceil((vendorPrice * MARKUP) / 5) * 5, // round up to nearest $5
+    price: Math.ceil((vendorPrice * MARKUP) / 5) * 5,
   }));
 }
 
