@@ -30,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-[#0a0f1e] text-slate-100 antialiased font-sans">
+      <body className="min-h-full flex flex-col bg-[#0a0f1e] text-slate-100 antialiased" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
         {children}
       </body>
     </html>
