@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import TradelineCard from '@/components/TradelineCard';
 import TradelineFilters, { FilterState } from '@/components/TradelineFilters';
-import { MOCK_TRADELINES } from '@/lib/tradelines-client';
-import { ArrowRight, SlidersHorizontal, X } from 'lucide-react';
+import type { Tradeline } from '@/lib/tradelines';
+import { ArrowRight, SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 const DEFAULT_FILTERS: FilterState = {
@@ -18,12 +18,32 @@ const DEFAULT_FILTERS: FilterState = {
 };
 
 export default function BuyPage() {
+  const [tradelines, setTradelines] = useState<Tradeline[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(9);
 
+  useEffect(() => {
+    fetch('/api/tradelines')
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data: Tradeline[]) => {
+        setTradelines(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load tradelines:', err);
+        setError('Unable to load inventory. Please refresh.');
+        setLoading(false);
+      });
+  }, []);
+
   const filtered = useMemo(() => {
-    let items = MOCK_TRADELINES.filter((t) => {
+    let items = tradelines.filter((t) => {
       if (t.creditLimit < filters.minLimit) return false;
       if (t.ageMonths < filters.minAge) return false;
       if (t.utilization > filters.maxUtilization) return false;
@@ -40,7 +60,7 @@ export default function BuyPage() {
     });
 
     return items;
-  }, [filters]);
+  }, [tradelines, filters]);
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
@@ -55,7 +75,7 @@ export default function BuyPage() {
             <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6">
               <div>
                 <p className="text-[#a3e635] text-sm font-semibold uppercase tracking-widest mb-3">
-                  Verified Inventory
+                  Live Inventory
                 </p>
                 <h1 className="text-4xl lg:text-5xl font-bold text-white">
                   Browse Tradelines
@@ -69,7 +89,7 @@ export default function BuyPage() {
                 <div className="flex items-center gap-2 bg-[#111827] border border-[#1e2d40] rounded-xl px-4 py-2.5">
                   <span className="w-2 h-2 rounded-full bg-[#a3e635]" />
                   <span className="text-sm text-slate-300 font-medium">
-                    {filtered.length} Available
+                    {loading ? '—' : `${filtered.length} Available`}
                   </span>
                 </div>
                 <Link
@@ -90,7 +110,7 @@ export default function BuyPage() {
             className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
           >
             <SlidersHorizontal className="w-4 h-4 text-[#a3e635]" />
-            Filters & Sort
+            Filters &amp; Sort
             {mobileFiltersOpen ? <X className="w-4 h-4 ml-1" /> : null}
           </button>
         </div>
@@ -134,7 +154,22 @@ export default function BuyPage() {
 
             {/* Grid */}
             <div className="flex-1 min-w-0">
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-32 gap-4">
+                  <Loader2 className="w-10 h-10 text-[#a3e635] animate-spin" />
+                  <p className="text-slate-400 text-sm">Loading live inventory…</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-24">
+                  <p className="text-red-400 text-lg">{error}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="mt-4 text-[#a3e635] hover:text-[#b5f53f] font-medium transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="text-center py-24 space-y-4">
                   <p className="text-slate-400 text-lg">No tradelines match your filters.</p>
                   <button
